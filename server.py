@@ -28,10 +28,17 @@ Available folders: INBOX, Sent, Drafts, Trash, Junk, Archive.
 To read sent emails, use email_list(folder="Sent") and email_read(uid="...", folder="Sent").
 
 When sending or replying to emails, ALWAYS provide both `body` (plain text) and `html` parameters.
-The `html` should be a simple, clean HTML version — just use basic tags like <p>, <br>, <ul>, <ol>, <li>, <b>, <i>, <a> for structure.
-Do NOT use fancy HTML email templates, colored backgrounds, tables for layout, or heavy inline styles.
-Keep it looking like a normal email, not a marketing newsletter.
+The `body` is the plain text fallback, and `html` should contain a well-formatted HTML version.
+Use proper HTML email best practices: inline styles, table-based layout if needed, and keep it clean and professional.
 Do NOT add any signature or footer unless the user explicitly asks for one.
+
+HTML formatting rules:
+- Use basic tags: <p>, <br>, <ul>, <ol>, <li>, <b>, <i>, <a>, <code>, <pre>.
+- For inline code, use: <code style="background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:13px;">code here</code>
+- For code blocks, use:
+  <pre style="background:#f3f4f6; padding:12px 16px; border-radius:6px; font-size:13px; overflow-x:auto; font-family:monospace;"><code>code here</code></pre>
+- NEVER use markdown syntax (```, **, _, etc.) inside the html parameter. Always convert to proper HTML tags.
+- Keep the overall look clean and professional — like a normal email, not a marketing newsletter.
 """,
 )
 
