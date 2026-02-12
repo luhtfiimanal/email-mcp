@@ -8,7 +8,7 @@ MCP server (stdio) for reading and sending emails via IMAP/SMTP, built for Mailc
 ### Morning Email Check
 When the user asks to check their email (e.g., "check emailku", "ada email penting?", "morning briefing"):
 
-1. **Fetch recent emails** — use `email_list(folder="INBOX", count=30)` to get the latest emails.
+1. **Fetch unread emails** — use `email_search(query="UNSEEN")` to get only unread emails.
 2. **Categorize** each email into:
    - **Penting** — from colleagues, clients, or partners; about projects, meetings, deadlines, invoices, or action items.
    - **Promosi/Newsletter** — marketing emails, newsletters, automated notifications, social media updates.

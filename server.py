@@ -204,7 +204,7 @@ def email_read(uid: str, folder: str = "INBOX") -> dict:
     """
     conn = _imap_connect()
     try:
-        status, _ = conn.select(folder, readonly=True)
+        status, _ = conn.select(folder)
         if status != "OK":
             return {"error": f"Cannot select folder: {folder}"}
 
