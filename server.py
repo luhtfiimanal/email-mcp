@@ -187,6 +187,7 @@ def email_list(folder: str = "INBOX", count: int = 20) -> list[dict]:
             flags_data = msg_data[0][0] if isinstance(msg_data[0], tuple) else b""
             flags_str = flags_data.decode(errors="replace")
             summary["seen"] = "\\Seen" in flags_str
+            summary["answered"] = "\\Answered" in flags_str
 
             results.append(summary)
         return results
@@ -269,7 +270,14 @@ def email_search(query: str, folder: str = "INBOX", count: int = 20) -> list[dic
                 continue
             raw = msg_data[0][1] if isinstance(msg_data[0], tuple) else msg_data[0]
             msg = email.message_from_bytes(raw)
-            results.append(_format_email_summary(uid, msg))
+            summary = _format_email_summary(uid, msg)
+
+            flags_data = msg_data[0][0] if isinstance(msg_data[0], tuple) else b""
+            flags_str = flags_data.decode(errors="replace")
+            summary["seen"] = "\\Seen" in flags_str
+            summary["answered"] = "\\Answered" in flags_str
+
+            results.append(summary)
         return results
     finally:
         conn.logout()
@@ -303,6 +311,8 @@ def email_send(
     msg["From"] = EMAIL_USER
     msg["To"] = to
     msg["Subject"] = subject
+    msg["Date"] = email.utils.formatdate(localtime=True)
+    msg["Message-ID"] = email.utils.make_msgid(domain=EMAIL_USER.split("@")[-1])
     if cc:
         msg["Cc"] = cc
 
@@ -342,7 +352,7 @@ def email_reply(
     """
     conn = _imap_connect()
     try:
-        status, _ = conn.select(folder, readonly=True)
+        status, _ = conn.select(folder)
         if status != "OK":
             return f"Cannot select folder: {folder}"
 
@@ -352,6 +362,9 @@ def email_reply(
 
         raw = msg_data[0][1]
         original = email.message_from_bytes(raw)
+
+        # Mark original as answered
+        conn.uid("store", uid.encode(), "+FLAGS", "(\\Answered)")
     finally:
         conn.logout()
 
@@ -371,6 +384,8 @@ def email_reply(
         reply = MIMEText(body, "plain", "utf-8")
     reply["From"] = EMAIL_USER
     reply["Subject"] = subject
+    reply["Date"] = email.utils.formatdate(localtime=True)
+    reply["Message-ID"] = email.utils.make_msgid(domain=EMAIL_USER.split("@")[-1])
     reply["In-Reply-To"] = original_message_id
     reply["References"] = original_message_id
 
@@ -433,6 +448,32 @@ def email_delete(uid: str, folder: str = "INBOX") -> str:
             conn.expunge()
 
         return f"Email UID {uid} deleted"
+    finally:
+        conn.logout()
+
+
+@mcp.tool()
+def email_empty_trash() -> str:
+    """Permanently delete all emails in the Trash folder."""
+    conn = _imap_connect()
+    try:
+        status, _ = conn.select("Trash")
+        if status != "OK":
+            return "Cannot select Trash folder"
+
+        status, data = conn.uid("search", None, "ALL")
+        if status != "OK":
+            return "Failed to search Trash"
+
+        uids = data[0].split()
+        if not uids:
+            return "Trash is already empty"
+
+        uid_set = b",".join(uids)
+        conn.uid("store", uid_set, "+FLAGS", "(\\Deleted)")
+        conn.expunge()
+
+        return f"Trash emptied — {len(uids)} email(s) permanently deleted"
     finally:
         conn.logout()
 
