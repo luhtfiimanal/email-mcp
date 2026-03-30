@@ -453,6 +453,44 @@ def email_delete(uid: str, folder: str = "INBOX") -> str:
 
 
 @mcp.tool()
+def email_delete_many(uids: list[str], folder: str = "INBOX") -> str:
+    """Delete multiple emails by UIDs (moves to Trash).
+
+    Args:
+        uids: List of UIDs to delete
+        folder: Folder containing the emails (default: INBOX)
+    """
+    if not uids:
+        return "No UIDs provided"
+
+    conn = _imap_connect()
+    try:
+        status, _ = conn.select(folder)
+        if status != "OK":
+            return f"Cannot select folder: {folder}"
+
+        trash_names = ["Trash", "INBOX.Trash", "Deleted Items", "Deleted"]
+        uid_set = ",".join(uids)
+
+        moved = False
+        for trash in trash_names:
+            status, _ = conn.uid("copy", uid_set.encode(), trash)
+            if status == "OK":
+                conn.uid("store", uid_set.encode(), "+FLAGS", "(\\Deleted)")
+                conn.expunge()
+                moved = True
+                break
+
+        if not moved:
+            conn.uid("store", uid_set.encode(), "+FLAGS", "(\\Deleted)")
+            conn.expunge()
+
+        return f"{len(uids)} email(s) deleted"
+    finally:
+        conn.logout()
+
+
+@mcp.tool()
 def email_empty_trash() -> str:
     """Permanently delete all emails in the Trash folder."""
     conn = _imap_connect()
